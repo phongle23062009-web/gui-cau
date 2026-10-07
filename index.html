@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vũ Trụ Tình Yêu dành cho Cậu ❤️</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Plus+Jakarta+Sans:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: #030014;
+        font-family: "Plus Jakarta Sans", sans-serif;
+        btn-music,
+        .btn-accept {
+          -webkit-user-select: none;
+          user-select: none;
+        }
+      }
+
+      .font-cursive {
+        font-family: "Dancing Script", cursive;
+      }
+
+      /* Glassmorphism Styles */
+      .glass-card {
+        background: rgba(15, 10, 30, 0.65);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 182, 218, 0.2);
+        box-shadow:
+          0 20px 50px rgba(0, 0, 0, 0.6),
+          inset 0 0 15px rgba(255, 105, 180, 0.15);
+      }
+
+      .glass-btn {
+        background: rgba(255, 255, 255, 0.08);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .glass-btn:hover {
+        background: rgba(255, 105, 180, 0.3);
+        border-color: rgba(255, 182, 218, 0.6);
+        box-shadow: 0 0 20px rgba(255, 105, 180, 0.5);
+        transform: translateY(-2px);
+      }
+
+      .glass-btn:active {
+        transform: translateY(1px);
+      }
+
+      /* Custom Scrollbar */
+      .custom-scroll::-webkit-scrollbar {
+        width: 4px;
+      }
+      .custom-scroll::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.05);
+      }
+      .custom-scroll::-webkit-scrollbar-thumb {
+        background: rgba(255, 105, 180, 0.3);
+        border-radius: 4px;
+      }
+
+      /* Glow animation */
+      @keyframes pulse-glow {
+        0%,
+        100% {
+          opacity: 0.6;
+          filter: drop-shadow(0 0 10px rgba(255, 105, 180, 0.6));
+        }
+        50% {
+          opacity: 1;
+          filter: drop-shadow(0 0 25px rgba(255, 105, 180, 0.9));
+        }
+      }
+
+      .animate-glow {
+        animation: pulse-glow 3s infinite ease-in-out;
+      }
+
+      /* Canvas Overlay Fix */
+      #webgl-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+
+      #ui-layer {
+        position: relative;
+        z-index: 10;
+        pointer-events: none;
+      }
+
+      .pointer-auto {
+        pointer-events: auto;
+      }
+    </style>
+  </head>
+  <body class="text-white relative">
+    <canvas id="webgl-canvas"></canvas>
+
+    <!-- UI Overlay Layer -->
+    <div
+      id="ui-layer"
+      class="w-full h-full min-h-screen flex flex-col justify-between p-4 sm:p-6 overflow-hidden"
+    >
+      <!-- Top Header Navigation -->
+      <div class="flex justify-between items-center w-full max-w-7xl mx-auto">
+        <div class="flex items-center space-x-3 pointer-auto">
+          <div
+            class="w-10 h-10 rounded-full bg-pink-500/20 border border-pink-400/40 flex items-center justify-center animate-glow"
+          >
+            <span class="text-xl">✨</span>
+          </div>
+          <div>
+            <h1
+              class="font-cursive text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-pink-300 via-purple-300 to-indigo-200"
+            >
+              Vũ Trụ Tình Yêu
+            </h1>
+            <p
+              class="text-[10px] sm:text-xs text-pink-200/60 -mt-1 tracking-widest uppercase"
+            >
+              Love Cosmos Simulator
+            </p>
+          </div>
+        </div>
+
+        <!-- Audio & Interactive Controls -->
+        <div class="flex items-center space-x-2 sm:space-x-3 pointer-auto">
+          <!-- Music Toggle -->
+          <button
+            id="music-btn"
+            class="glass-btn px-3 py-2 rounded-full flex items-center space-x-2 text-xs sm:text-sm text-pink-200"
+          >
+            <span id="music-icon" class="text-base">🎵</span>
+            <span id="music-text" class="hidden sm:inline">Phát Nhạc</span>
+          </button>
+
+          <!-- Letter Toggle Mobile/Desktop -->
+          <button
+            id="toggle-letter-btn"
+            class="glass-btn px-3 py-2 rounded-full flex items-center space-x-2 text-xs sm:text-sm text-pink-200"
+          >
+            <span class="text-base">💌</span>
+            <span class="hidden sm:inline">Tâm Thư</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Center Interactive Hint (Fades out) -->
+      <div
+        id="interaction-hint"
+        class="text-center pointer-events-none transition-opacity duration-1000 my-auto opacity-80"
+      >
+        <p
+          class="text-pink-200/80 text-sm sm:text-base font-light tracking-wide bg-black/30 backdrop-blur-md px-4 py-2 rounded-full inline-block border border-pink-500/20 shadow-lg"
+        >
+          🖐️ Hãy kéo nhẹ màn hình để xoay Vũ Trụ
+        </p>
+      </div>
+
+      <!-- Bottom Status & Letter Area -->
+      <div
+        class="w-full max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-end gap-4"
+      >
+        <!-- Dynamic State Badge -->
+        <div
+          class="pointer-auto glass-card px-4 py-2 rounded-2xl flex items-center space-x-3 text-xs sm:text-sm text-pink-200/80 mb-2 md:mb-0"
+        >
+          <span class="relative flex h-2.5 w-2.5">
+            <span
+              class="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"
+            ></span>
+            <span
+              class="relative inline-flex rounded-full h-2.5 w-2.5 bg-pink-500"
+            ></span>
+          </span>
+          <span id="state-description">Đang ngưng đọng thành Trái Tim...</span>
+        </div>
+
+        <!-- Glassmorphism Heart Letter Box -->
+        <div
+          id="letter-box"
+          class="pointer-auto glass-card w-full md:w-[420px] rounded-3xl p-6 sm:p-7 flex flex-col space-y-4 transition-all duration-700 transform translate-y-0 opacity-100 relative overflow-hidden"
+        >
+          <!-- Decorative Top Border Glow -->
+          <div
+            class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-pink-400 to-transparent opacity-50"
+          ></div>
+
+          <div
+            class="flex items-center justify-between border-b border-pink-500/20 pb-3"
+          >
+            <div class="flex items-center space-x-2">
+              <span class="text-xl">💌</span>
+              <h2 class="font-cursive text-2xl text-pink-200 font-semibold">
+                Tâm Thư Gửi Crush
+              </h2>
+            </div>
+            <button
+              id="close-letter-btn"
+              class="text-pink-300/60 hover:text-pink-200 text-sm sm:hidden"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Letter Content Typewriter -->
+          <div
+            class="text-sm sm:text-base text-pink-100/90 leading-relaxed min-h-[140px] custom-scroll overflow-y-auto max-h-[220px]"
+          >
+            <p id="typewriter-text" class="whitespace-pre-line font-light"></p>
+            <span
+              id="cursor"
+              class="inline-block w-1.5 h-4 bg-pink-400 ml-0.5 animate-pulse"
+            ></span>
+          </div>
+
+          <!-- Interactive Response Button -->
+          <div
+            id="action-buttons"
+            class="pt-2 opacity-0 transition-opacity duration-500 flex flex-col gap-2"
+          >
+            <button
+              id="accept-btn"
+              class="w-full py-3 px-6 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 text-white font-medium text-sm sm:text-base shadow-lg shadow-pink-500/30 hover:shadow-pink-500/60 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center space-x-2 group"
+            >
+              <span>Tớ Đồng Ý!</span>
+              <span class="group-hover:translate-x-1 transition-transform"
+                >❤️</span
+              >
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Celebration Success Modal -->
+    <div
+      id="success-modal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl opacity-0 pointer-events-none transition-opacity duration-700"
+    >
+      <div
+        class="glass-card max-w-md w-full rounded-3xl p-8 text-center space-y-6 border border-pink-400/40 shadow-2xl transform scale-90 transition-transform duration-500"
+        id="success-card"
+      >
+        <div
+          class="w-20 h-20 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto text-4xl border border-pink-400/40 animate-bounce"
+        >
+          💖
+        </div>
+        <div class="space-y-2">
+          <h3 class="font-cursive text-4xl text-pink-200 font-bold">
+            Khoảnh Khắc Kỳ Diệu!
+          </h3>
+          <p class="text-pink-100/90 text-sm sm:text-base leading-relaxed">
+            Cảm ơn cậu đã đồng ý bước vào vũ trụ của tớ. Từ hôm nay, vũ trụ này
+            chính thức thuộc về hai chúng ta! ✨🌸
+          </p>
+        </div>
+        <button
+          id="close-modal-btn"
+          class="w-full py-3 rounded-xl bg-pink-500/30 border border-pink-400/40 text-pink-100 font-medium hover:bg-pink-500/50 transition-all"
+        >
+          Cùng Ngắm Vũ Trụ Nào 🌌
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const LETTER_TEXT = `Gửi Cậu,
+
+Tớ đã dành rất nhiều tâm huyết để tự tay kiến tạo nên cả một vũ trụ nhỏ này dành riêng cho cậu.
+
+Mỗi ngôi sao, mỗi vệt sáng lấp lánh ở đây đều đại diện cho những suy nghĩ và cảm xúc chân thành nhất mà tớ dành cho cậu mỗi ngày.
+
+Làm người yêu tớ nhé? ❤️`;
+
+      let scene, camera, renderer, particleSystem;
+      let particleCount = 10000;
+      let positions, colors, targetHeart, targetDispersed;
+      let currentMorphProgress = 0;
+      let isHeartState = true;
+      let morphSpeed = 0.008;
+      let holdTimer = 0;
+
+      // Touch & Mouse Control Vars
+      let isDragging = false;
+      let previousMousePosition = { x: 0, y: 0 };
+      let rotationTarget = { x: 0, y: 0 };
+      let rotationCurrent = { x: 0, y: 0 };
+
+      // Audio Context Synthesizer
+      let audioCtx = null;
+      let isPlayingMusic = false;
+      let musicInterval = null;
+
+      function initWebGL() {
+        const canvas = document.getElementById("webgl-canvas");
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x030014, 0.015);
+
+        camera = new THREE.PerspectiveCamera(
+          60,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000,
+        );
+        camera.position.z = 35;
+
+        renderer = new THREE.WebGLRenderer({
+          canvas: canvas,
+          antialias: true,
+          alpha: true,
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        // Create Particles
+        const geometry = new THREE.BufferGeometry();
+        positions = new Float32Array(particleCount * 3);
+        colors = new Float32Array(particleCount * 3);
+        targetHeart = new Float32Array(particleCount * 3);
+        targetDispersed = new Float32Array(particleCount * 3);
+
+        const colorPalette = [
+          new THREE.Color(0xff69b4), // Hot Pink
+          new THREE.Color(0xffb6c1), // Light Pink
+          new THREE.Color(0x9370db), // Purple
+          new THREE.Color(0x00ffff), // Cyan
+          new THREE.Color(0xffffff), // White
+        ];
+
+        for (let i = 0; i < particleCount; i++) {
+          // Heart coordinates formula 3D
+          const t = Math.PI * (2 * Math.random() - 1);
+          const u = Math.PI * (Math.random() - 0.5);
+
+          // Parametric Heart
+          const xH = 16 * Math.pow(Math.sin(t), 3);
+          const yH =
+            13 * Math.cos(t) -
+            5 * Math.cos(2 * t) -
+            2 * Math.cos(3 * t) -
+            Math.cos(4 * t);
+          const zH = u * 8 * Math.sin(t);
+
+          // Scale Heart down
+          const scale = 0.75;
+          targetHeart[i * 3] = xH * scale + (Math.random() - 0.5) * 0.8;
+          targetHeart[i * 3 + 1] = yH * scale + (Math.random() - 0.5) * 0.8;
+          targetHeart[i * 3 + 2] = zH * scale + (Math.random() - 0.5) * 0.8;
+
+          // Dispersed / Petal Galaxy layout
+          const radius = 15 + Math.random() * 35;
+          const theta = Math.random() * Math.PI * 2;
+          const phi = Math.random() * Math.PI * 2;
+
+          targetDispersed[i * 3] = radius * Math.sin(theta) * Math.cos(phi);
+          targetDispersed[i * 3 + 1] = radius * Math.sin(theta) * Math.sin(phi);
+          targetDispersed[i * 3 + 2] = radius * Math.cos(theta);
+
+          // Start positions randomly
+          positions[i * 3] = targetHeart[i * 3];
+          positions[i * 3 + 1] = targetHeart[i * 3 + 1];
+          positions[i * 3 + 2] = targetHeart[i * 3 + 2];
+
+          // Assign Colors
+          const color =
+            colorPalette[Math.floor(Math.random() * colorPalette.length)];
+          colors[i * 3] = color.r;
+          colors[i * 3 + 1] = color.g;
+          colors[i * 3 + 2] = color.b;
+        }
+
+        geometry.setAttribute(
+          "position",
+          new THREE.BufferAttribute(positions, 3),
+        );
+        geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+        // Custom Texture for glowing particles
+        const canvasTexture = createParticleTexture();
+        const texture = new THREE.CanvasTexture(canvasTexture);
+
+        const material = new THREE.PointsMaterial({
+          size: 0.8,
+          vertexColors: true,
+          map: texture,
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+
+        particleSystem = new THREE.Points(geometry, material);
+        scene.add(particleSystem);
+
+        // Add background starfield ambient
+        createStarfield();
+
+        // Event Listeners for Resize & Interaction
+        window.addEventListener("resize", onWindowResize);
+        setupInteractions();
+      }
+
+      function createParticleTexture() {
+        const canvas = document.createElement("canvas");
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext("2d");
+
+        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gradient.addColorStop(0, "rgba(255, 255, 255, 1)");
+        gradient.addColorStop(0.3, "rgba(255, 182, 218, 0.8)");
+        gradient.addColorStop(0.6, "rgba(147, 112, 219, 0.3)");
+        gradient.addColorStop(1, "rgba(0, 0, 0, 0)");
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 64, 64);
+        return canvas;
+      }
+
+      function createStarfield() {
+        const starGeo = new THREE.BufferGeometry();
+        const starCount = 3000;
+        const starPositions = new Float32Array(starCount * 3);
+
+        for (let i = 0; i < starCount * 3; i++) {
+          starPositions[i] = (Math.random() - 0.5) * 200;
+        }
+
+        starGeo.setAttribute(
+          "position",
+          new THREE.BufferAttribute(starPositions, 3),
+        );
+        const starMat = new THREE.PointsMaterial({
+          size: 0.3,
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.5,
+        });
+
+        const starField = new THREE.Points(starGeo, starMat);
+        scene.add(starField);
+      }
+
+      function setupInteractions() {
+        const canvas = document.getElementById("webgl-canvas");
+
+        const onStart = (x, y) => {
+          isDragging = true;
+          previousMousePosition = { x, y };
+          document.getElementById("interaction-hint").style.opacity = "0";
+        };
+
+        const onMove = (x, y) => {
+          if (!isDragging) return;
+          const deltaX = x - previousMousePosition.x;
+          const deltaY = y - previousMousePosition.y;
+
+          rotationTarget.y += deltaX * 0.005;
+          rotationTarget.x += deltaY * 0.005;
+
+          previousMousePosition = { x, y };
+        };
+
+        const onEnd = () => {
+          isDragging = false;
+        };
+
+        // Mouse Events
+        canvas.addEventListener("mousedown", (e) =>
+          onStart(e.clientX, e.clientY),
+        );
+        window.addEventListener("mousemove", (e) =>
+          onMove(e.clientX, e.clientY),
+        );
+        window.addEventListener("mouseup", onEnd);
+
+        // Touch Events
+        canvas.addEventListener("touchstart", (e) => {
+          if (e.touches.length === 1) {
+            onStart(e.touches[0].clientX, e.touches[0].clientY);
+          }
+        });
+        window.addEventListener("touchmove", (e) => {
+          if (e.touches.length === 1) {
+            onMove(e.touches[0].clientX, e.touches[0].clientY);
+          }
+        });
+        window.addEventListener("touchend", onEnd);
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      }
+
+      function animate(time) {
+        requestAnimationFrame(animate);
+
+        // Smooth Interpolation for Camera Rotation
+        rotationCurrent.x += (rotationTarget.x - rotationCurrent.x) * 0.05;
+        rotationCurrent.y += (rotationTarget.y - rotationCurrent.y) * 0.05;
+
+        particleSystem.rotation.x = rotationCurrent.x;
+        particleSystem.rotation.y = rotationCurrent.y + time * 0.0003;
+
+        // Heart Beat Effect when in Heart State
+        let beatScale = 1;
+        if (isHeartState && currentMorphProgress >= 0.95) {
+          beatScale =
+            1 +
+            Math.sin(time * 0.005) * 0.05 +
+            Math.pow(Math.sin(time * 0.01), 10) * 0.04;
+          particleSystem.scale.set(beatScale, beatScale, beatScale);
+        } else {
+          particleSystem.scale.set(1, 1, 1);
+        }
+
+        // Morphing Logic between Heart & Galaxy
+        holdTimer += 0.016; // approx 60fps frame time
+
+        if (isHeartState) {
+          // Morphing towards Heart
+          if (currentMorphProgress < 1) {
+            currentMorphProgress += morphSpeed;
+          } else if (holdTimer > 10) {
+            // Hold heart state for ~10 sec
+            isHeartState = false;
+            holdTimer = 0;
+            document.getElementById("state-description").innerText =
+              "Bung nở thành Vũ Trụ Cánh Hoa...";
+          }
+        } else {
+          // Morphing towards Dispersed Galaxy
+          if (currentMorphProgress > 0) {
+            currentMorphProgress -= morphSpeed;
+          } else if (holdTimer > 8) {
+            // Hold dispersed state for ~8 sec
+            isHeartState = true;
+            holdTimer = 0;
+            document.getElementById("state-description").innerText =
+              "Đang quy tụ thành Trái Tim...";
+          }
+        }
+
+        // Update Particle Positions
+        const currentPositions =
+          particleSystem.geometry.attributes.position.array;
+        const easeProgress = easeInOutCubic(currentMorphProgress);
+
+        for (let i = 0; i < particleCount * 3; i++) {
+          const targetX =
+            targetHeart[i] * easeProgress +
+            targetDispersed[i] * (1 - easeProgress);
+          const targetY =
+            targetHeart[i + 1] * easeProgress +
+            targetDispersed[i + 1] * (1 - easeProgress);
+          const targetZ =
+            targetHeart[i + 2] * easeProgress +
+            targetDispersed[i + 2] * (1 - easeProgress);
+
+          // Add subtle floating noise
+          const floatOffset = Math.sin(time * 0.002 + i) * 0.05;
+
+          currentPositions[i] +=
+            (targetX - currentPositions[i]) * 0.1 + floatOffset * 0.01;
+          currentPositions[i + 1] += (targetY - currentPositions[i + 1]) * 0.1;
+          currentPositions[i + 2] += (targetZ - currentPositions[i + 2]) * 0.1;
+        }
+
+        particleSystem.geometry.attributes.position.needsUpdate = true;
+        renderer.render(scene, camera);
+      }
+
+      function easeInOutCubic(x) {
+        return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+      }
+
+      let typeIdx = 0;
+      function typeWriter() {
+        const container = document.getElementById("typewriter-text");
+        if (typeIdx < LETTER_TEXT.length) {
+          container.textContent += LETTER_TEXT.charAt(typeIdx);
+          typeIdx++;
+          setTimeout(typeWriter, 45);
+        } else {
+          document.getElementById("cursor").style.display = "none";
+          document
+            .getElementById("action-buttons")
+            .classList.remove("opacity-0");
+        }
+      }
+
+      function initAudioSynthesizer() {
+        if (audioCtx) return;
+
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+
+        // Ambient Chord Frequencies (Fmaj7, Cmaj7, Am9 progression feel)
+        const chords = [
+          [174.61, 220.0, 261.63, 329.63], // Fmaj7
+          [130.81, 164.81, 196.0, 246.94], // Cmaj7
+          [220.0, 261.63, 329.63, 392.0], // Am7
+          [196.0, 246.94, 293.66, 349.23], // G7
+        ];
+
+        let chordIdx = 0;
+
+        function playChord() {
+          if (!isPlayingMusic || !audioCtx) return;
+
+          const now = audioCtx.currentTime;
+          const currentChord = chords[chordIdx];
+
+          currentChord.forEach((freq) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+
+            osc.type = "sine";
+            osc.frequency.setValueAtTime(freq, now);
+
+            // Soft Attack and Decay
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.04, now + 1.5);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + 5.5);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 5.5);
+          });
+
+          chordIdx = (chordIdx + 1) % chords.length;
+        }
+
+        isPlayingMusic = true;
+        playChord();
+        musicInterval = setInterval(playChord, 5000);
+      }
+
+      function toggleMusic() {
+        const btnText = document.getElementById("music-text");
+        const btnIcon = document.getElementById("music-icon");
+
+        if (!isPlayingMusic) {
+          if (!audioCtx) {
+            initAudioSynthesizer();
+          } else {
+            audioCtx.resume();
+            isPlayingMusic = true;
+          }
+          btnText.innerText = "Tắt Nhạc";
+          btnIcon.innerText = "🔊";
+        } else {
+          if (audioCtx) {
+            audioCtx.suspend();
+          }
+          isPlayingMusic = false;
+          btnText.innerText = "Phát Nhạc";
+          btnIcon.innerText = "🎵";
+        }
+      }
+
+      function setupUIEvents() {
+        // Music Toggle
+        document
+          .getElementById("music-btn")
+          .addEventListener("click", toggleMusic);
+
+        // Letter Toggle Mobile
+        const letterBox = document.getElementById("letter-box");
+        document
+          .getElementById("toggle-letter-btn")
+          .addEventListener("click", () => {
+            letterBox.classList.toggle("translate-y-full");
+            letterBox.classList.toggle("opacity-0");
+          });
+
+        document
+          .getElementById("close-letter-btn")
+          .addEventListener("click", () => {
+            letterBox.classList.add("translate-y-full", "opacity-0");
+          });
+
+        // Accept Button -> Confetti Firework Effect
+        document.getElementById("accept-btn").addEventListener("click", () => {
+          // Trigger Confetti Fireworks
+          const duration = 4 * 1000;
+          const animationEnd = Date.now() + duration;
+          const defaults = {
+            startVelocity: 30,
+            spread: 360,
+            ticks: 60,
+            zIndex: 100,
+          };
+
+          function randomInRange(min, max) {
+            return Math.random() * (max - min) + min;
+          }
+
+          const interval = setInterval(function () {
+            const timeLeft = animationEnd - Date.now();
+
+            if (timeLeft <= 0) {
+              return clearInterval(interval);
+            }
+
+            const particleCount = 50 * (timeLeft / duration);
+
+            confetti({
+              ...defaults,
+              particleCount,
+              origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+              colors: ["#ff69b4", "#ff1493", "#ffffff"],
+            });
+            confetti({
+              ...defaults,
+              particleCount,
+              origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+              colors: ["#9370db", "#ffb6c1", "#00ffff"],
+            });
+          }, 250);
+
+          // Open Success Modal
+          const modal = document.getElementById("success-modal");
+          const card = document.getElementById("success-card");
+          modal.classList.remove("opacity-0", "pointer-events-none");
+          card.classList.remove("scale-90");
+          card.classList.add("scale-100");
+
+          // Ensure Music Plays
+          if (!isPlayingMusic) toggleMusic();
+        });
+
+        document
+          .getElementById("close-modal-btn")
+          .addEventListener("click", () => {
+            const modal = document.getElementById("success-modal");
+            modal.classList.add("opacity-0", "pointer-events-none");
+          });
+
+        // Auto-start music on first touch anywhere
+        window.addEventListener(
+          "pointerdown",
+          () => {
+            if (!audioCtx && !isPlayingMusic) {
+              initAudioSynthesizer();
+              document.getElementById("music-text").innerText = "Tắt Nhạc";
+              document.getElementById("music-icon").innerText = "🔊";
+            }
+          },
+          { once: true },
+        );
+      }
+
+      window.onload = function () {
+        initWebGL();
+        setupUIEvents();
+        animate(0);
+
+        // Delay start typewriter for emotional impact
+        setTimeout(typeWriter, 1200);
+      };
+    </script>
+  </body>
+</html>
